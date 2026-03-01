@@ -1,104 +1,84 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import "./App.css";
 
 function App() {
   const [message, setMessage] = useState("");
-  const [response, setResponse] = useState("");
+  const [chat, setChat] = useState([]);
+  const chatEndRef = useRef(null);
 
   const suggestions = [
-    "Hi",
-    "How are you?",
-    "What is the fee?",
-    "Tell me about courses",
-    "Hostel details",
-    "Admission process"
+    "Tell me about admissions",
+    "Available courses"
   ];
+
+ 
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat]);
 
   const sendMessage = async (msg) => {
     const finalMessage = msg || message;
+    if (!finalMessage.trim()) return;
+
+    const newChat = [...chat, { type: "user", text: finalMessage }];
+    setChat(newChat);
+    setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/chat", {
+      const res = await axios.post("http://localhost:5000/chat", {
         message: finalMessage
       });
 
-      setResponse(res.data.reply);
+      setChat([
+        ...newChat,
+        { type: "bot", text: res.data.reply }
+      ]);
     } catch (err) {
-      setResponse("Server Error ❌");
+      setChat([
+        ...newChat,
+        { type: "bot", text: "Server Error ❌ Please check backend." }
+      ]);
     }
+  };
 
-    setMessage("");
+  // ✅ Handle Enter key
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
   };
 
   return (
-    <div style={{
-      textAlign:"center",
-      marginTop:"50px",
-      fontFamily:"Arial"
-    }}>
-      <h1> Campus Chatbot</h1>
+    <div className="chat-container">
+      <h2>🎓 Campus AI Chatbot</h2>
 
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Ask something..."
-        style={{
-          padding:"12px",
-          width:"400px",
-          borderRadius:"8px",
-          border:"1px solid #ccc"
-        }}
-      />
-
-      <br /><br />
-
-      <button
-        onClick={() => sendMessage()}
-        style={{
-          padding:"10px 25px",
-          borderRadius:"8px",
-          background:"#007bff",
-          color:"white",
-          border:"none",
-          cursor:"pointer"
-        }}
-      >
-        Send
-      </button>
-
-      <div style={{marginTop:"30px"}}>
-        <h3>Quick Questions:</h3>
-
+      <div className="suggestions">
         {suggestions.map((item, index) => (
-          <button
-            key={index}
-            onClick={() => sendMessage(item)}
-            style={{
-              margin:"5px",
-              padding:"8px 15px",
-              borderRadius:"20px",
-              border:"1px solid #007bff",
-              background:"white",
-              cursor:"pointer"
-            }}
-          >
+          <button key={index} onClick={() => sendMessage(item)}>
             {item}
           </button>
         ))}
       </div>
 
-      <div style={{
-        marginTop:"40px",
-        padding:"20px",
-        width:"60%",
-        marginLeft:"auto",
-        marginRight:"auto",
-        background:"#f5f5f5",
-        borderRadius:"10px"
-      }}>
-        <h3>Bot Response:</h3>
-        <p>{response}</p>
+      <div className="chat-box">
+        {chat.map((msg, index) => (
+          <div key={index} className={`message ${msg.type}`}>
+            {msg.text}
+          </div>
+        ))}
+        <div ref={chatEndRef}></div>
+      </div>
+
+      <div className="input-area">
+        <input
+          type="text"
+          value={message}
+          placeholder="Ask about campus..."
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyPress}   // ✅ Enter works
+        />
+        <button onClick={() => sendMessage()}>Send</button>
       </div>
     </div>
   );

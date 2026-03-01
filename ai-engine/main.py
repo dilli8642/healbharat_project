@@ -1,61 +1,38 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from langdetect import detect
+import json
 
-# 1️⃣ Create FastAPI app FIRST
 app = FastAPI()
 
-# 2️⃣ Request model
-class Message(BaseModel):
-    text: str
+class Query(BaseModel):
+    message: str
 
-# 3️⃣ Simple intent detection
-def simple_intent(text):
-    text = text.lower()
-    if "fee" in text:
-        return "fees_query"
-    if "scholarship" in text:
-        return "scholarship_query"
-    if "timetable" in text:
-        return "timetable_query"
-    return "unknown"
+# Load knowledge base
+with open("knowledge_base.json", "r", encoding="utf-8") as file:
+    knowledge = json.load(file)
 
-# 4️⃣ API Route
 @app.post("/process")
-def process_message(msg: Message):
+async def process_query(query: Query):
+    msg = query.message.lower()
 
-    language = detect(msg.text)
-    intent = simple_intent(msg.text)
+    # General human responses
+    greetings = ["hi", "hello", "hey"]
+    if any(word in msg for word in greetings):
+        return {"reply": "Hello 👋 Welcome to Campus AI Chatbot!\n\nI can help you with admissions, courses, fees, placements, hostel, scholarships and more."}
 
-    responses = {
-        "fees_query": {
-            "en": "You can pay fees through the student portal.",
-            "hi": "आप छात्र पोर्टल के माध्यम से फीस जमा कर सकते हैं।"
-        },
-        "scholarship_query": {
-            "en": "Scholarship forms are available in the admin office.",
-            "hi": "छात्रवृत्ति फॉर्म प्रशासनिक कार्यालय में उपलब्ध हैं।"
-        },
-        "timetable_query": {
-            "en": "Timetable is available on the college website.",
-            "hi": "समय सारणी कॉलेज वेबसाइट पर उपलब्ध है।"
-        }
-    }
+    if "how are you" in msg:
+        return {"reply": "I'm doing great 😊 and ready to assist you with campus information!"}
 
-    lang = "hi" if language == "hi" else "en"
+    if "thank" in msg:
+        return {"reply": "You're very welcome! 😊 Let me know if you need anything else."}
 
-    if intent not in responses:
-        return {
-            "intent": "unknown",
-            "language": language,
-            "response": "Your query has been forwarded to the moderator." if lang == "en"
-            else "आपका प्रश्न मॉडरेटर को भेज दिया गया है।",
-            "fallback": True
-        }
+    if "who are you" in msg:
+        return {"reply": "I am an AI-powered Campus Assistant built to provide detailed information about academics, campus facilities, admissions and more."}
 
+        # Knowledge base keyword matching
+    for key, value in knowledge.items():
+        if any(word in msg for word in key.lower().split()):
+            return {"reply": value}
     return {
-        "intent": intent,
-        "language": language,
-        "response": responses[intent][lang],
-        "fallback": False
-    }
+    "reply": "I may not have specific information about that yet.\n\nYou can ask about:\n• Admissions\n• Courses\n• Fees\n• Placements\n• Hostel\n• Transport\n• Scholarships"
+}

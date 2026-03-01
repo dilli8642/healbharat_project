@@ -1,31 +1,24 @@
 const express = require("express");
+const axios = require("axios");   // 🔥 THIS WAS MISSING
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const message = req.body.message.toLowerCase();
+  try {
+    const response = await axios.post(
+      "http://127.0.0.1:8000/process",
+      {
+        message: req.body.message
+      }
+    );
 
-  let reply = "I didn't understand that. Please ask about admissions, fees, courses, or hostel.";
+    res.json({ reply: response.data.reply });
 
-  if (message.includes("hi") || message.includes("hello")) {
-    reply = "Hello 👋 Welcome to Campus Chatbot!";
+  } catch (error) {
+    console.error("AI Engine Error:", error.message);
+    res.status(500).json({
+      reply: "Server Error ❌ Please check backend."
+    });
   }
-  else if (message.includes("how are you")) {
-    reply = "I'm doing great 😊 How can I help you today?";
-  }
-  else if (message.includes("fee")) {
-    reply = "The annual tuition fee is ₹85,000. Scholarship options are available.";
-  }
-  else if (message.includes("admission")) {
-    reply = "Admissions are open from May to July every year.";
-  }
-  else if (message.includes("course")) {
-    reply = "We offer B.Tech, MBA, BBA, and MCA programs.";
-  }
-  else if (message.includes("hostel")) {
-    reply = "Hostel facilities are available for both boys and girls.";
-  }
-
-  res.json({ reply });
 });
 
 module.exports = router;
